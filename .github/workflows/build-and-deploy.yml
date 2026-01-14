@@ -74,7 +74,7 @@ jobs:
       - name: Copy wheel to server home
         run: |
           # The ':' at the end targets the user's default home folder
-          scp -i key.pem dist/*.whl \
+          scp -i key.pem *.whl \
           ${{ secrets.AIRFLOW_USER }}@${{ secrets.AIRFLOW_HOST }}:
 
       # 1️⃣2️⃣ Verify the file exists (Cross-platform check)
