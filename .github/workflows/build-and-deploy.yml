@@ -73,13 +73,13 @@ jobs:
       # 1️⃣1️⃣ Copy wheel to the user's home directory (Works for Linux & Windows)
       - name: Copy wheel to server home
         run: |
-          sshpass -p "${{ secrets.AIRFLOW_PASSWORD }}" scp -o StrictHostKeyChecking=no \
+          sshpass -p "${{ secrets.AIRFLOW_SSH_KEY }}" scp -o StrictHostKeyChecking=no \
           *.whl ${{ secrets.AIRFLOW_USER }}@${{ secrets.AIRFLOW_HOST }}:
 
       # 1️⃣2️⃣ Verify the file exists (Cross-platform check)
       - name: Verify file on server
         run: |
-          sshpass -p "${{ secrets.AIRFLOW_PASSWORD }}" ssh -o StrictHostKeyChecking=no \
+          sshpass -p "${{ secrets.AIRFLOW_SSH_KEY }}" ssh -o StrictHostKeyChecking=no \
           ${{ secrets.AIRFLOW_USER }}@${{ secrets.AIRFLOW_HOST }} << 'EOF'
             echo "Searching for uploaded wheel..."
             ls -lh *.whl || dir *.whl
