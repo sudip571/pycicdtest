@@ -1,5 +1,5 @@
 [project]
-name = "cicdtest"
+name = "sudipomc-cicd-test-omg"
 version = "0.1.0"
 description = ""
 authors = [
