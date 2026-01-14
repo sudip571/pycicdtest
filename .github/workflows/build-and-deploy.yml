@@ -63,29 +63,29 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: wheel
-
-      # 🔟 Setup SSH
-      - name: Setup SSH
+        
+      # 🔟 Install sshpass
+      - name: Install sshpass
         run: |
-          echo "${{ secrets.AIRFLOW_SSH_KEY }}" > key.pem
-          chmod 600 key.pem
+          sudo apt-get update
+          sudo apt-get install -y sshpass
 
       # 1️⃣1️⃣ Copy wheel to the user's home directory (Works for Linux & Windows)
       - name: Copy wheel to server home
         run: |
-          # The ':' at the end targets the user's default home folder
-          scp -i key.pem *.whl \
-          ${{ secrets.AIRFLOW_USER }}@${{ secrets.AIRFLOW_HOST }}:
+          sshpass -p "${{ secrets.AIRFLOW_PASSWORD }}" scp -o StrictHostKeyChecking=no \
+          *.whl ${{ secrets.AIRFLOW_USER }}@${{ secrets.AIRFLOW_HOST }}:
 
       # 1️⃣2️⃣ Verify the file exists (Cross-platform check)
       - name: Verify file on server
         run: |
-          ssh -i key.pem \
+          sshpass -p "${{ secrets.AIRFLOW_PASSWORD }}" ssh -o StrictHostKeyChecking=no \
           ${{ secrets.AIRFLOW_USER }}@${{ secrets.AIRFLOW_HOST }} << 'EOF'
             echo "Searching for uploaded wheel..."
-            # 'ls' works on Linux/Ubuntu and Windows OpenSSH (Git Bash)
-            # If it's pure Windows CMD, 'dir' would be used, but 'ls' is usually available in SSH
             ls -lh *.whl || dir *.whl
           EOF
+
+
+       
 
 
