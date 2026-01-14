@@ -1,0 +1,86 @@
+name: Build, Publish & Deploy (Poetry)
+
+on:
+  push:
+    branches: [main, develop]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build & Publish Wheel
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1️⃣ Get source code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2️⃣ Setup Python
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # 3️⃣ Install Poetry
+      - name: Install Poetry
+        run: pip install poetry
+
+      
+
+      #  Set version dynamically (optional but recommended)
+      # WHY: Ensures unique version per build
+      - name: Set version from Git tag or run number
+        run: |
+          poetry version 1.0.${{ github.run_number }}
+
+      # 6️⃣ Build wheel
+      - name: Build wheel
+        run: poetry build
+
+      # 7️⃣ Publish to private PyPI
+      - name: Publish to Private PyPI
+        run: |
+          poetry config repositories.private-pypi ${{ secrets.PRIVATE_PYPI_URL }}
+          poetry config pypi-token.private-pypi ${{ secrets.PRIVATE_PYPI_TOKEN }}
+          poetry publish -r private-pypi
+
+      # 8️⃣ Upload wheel as artifact (used by deploy jobs)
+      - name: Upload wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheel
+          path: dist/*.whl
+
+  # deploy-airflow:
+  #   name: Deploy to Airflow
+  #   needs: build
+  #   runs-on: ubuntu-latest
+  #   environment: production   # requires approval
+
+  #   steps:
+  #     # 9️⃣ Download built wheel
+  #     - name: Download wheel
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: wheel
+
+  #     # 🔟 Setup SSH
+  #     - name: Setup SSH
+  #       run: |
+  #         echo "${{ secrets.AIRFLOW_SSH_KEY }}" > key.pem
+  #         chmod 600 key.pem
+
+  #     # 1️⃣1️⃣ Copy wheel to Airflow server
+  #     - name: Copy wheel to Airflow
+  #       run: |
+  #         scp -i key.pem *.whl \
+  #         ${{ secrets.AIRFLOW_USER }}@${{ secrets.AIRFLOW_HOST }}:/opt/airflow/packages/
+
+  #     # 1️⃣2️⃣ Install wheel on Airflow
+  #     - name: Install wheel on Airflow
+  #       run: |
+  #         ssh -i key.pem \
+  #         ${{ secrets.AIRFLOW_USER }}@${{ secrets.AIRFLOW_HOST }} << EOF
+  #           source /opt/airflow/venv/bin/activate
+  #           pip install --upgrade /opt/airflow/packages/*.whl
+  #         EOF
