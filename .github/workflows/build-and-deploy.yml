@@ -51,36 +51,41 @@ jobs:
           name: wheel
           path: dist/*.whl
 
-  # deploy-airflow:
-  #   name: Deploy to Airflow
-  #   needs: build
-  #   runs-on: ubuntu-latest
-  #   environment: production   # requires approval
+  deploy-airflow:
+    name: Deploy to Airflow
+    needs: build
+    runs-on: ubuntu-latest
+    environment: production   # requires approval
 
-  #   steps:
-  #     # 9️⃣ Download built wheel
-  #     - name: Download wheel
-  #       uses: actions/download-artifact@v4
-  #       with:
-  #         name: wheel
+    steps:
+      # 9️⃣ Download built wheel
+      - name: Download wheel
+        uses: actions/download-artifact@v4
+        with:
+          name: wheel
 
-  #     # 🔟 Setup SSH
-  #     - name: Setup SSH
-  #       run: |
-  #         echo "${{ secrets.AIRFLOW_SSH_KEY }}" > key.pem
-  #         chmod 600 key.pem
+      # 🔟 Setup SSH
+      - name: Setup SSH
+        run: |
+          echo "${{ secrets.AIRFLOW_SSH_KEY }}" > key.pem
+          chmod 600 key.pem
 
-  #     # 1️⃣1️⃣ Copy wheel to Airflow server
-  #     - name: Copy wheel to Airflow
-  #       run: |
-  #         scp -i key.pem *.whl \
-  #         ${{ secrets.AIRFLOW_USER }}@${{ secrets.AIRFLOW_HOST }}:/opt/airflow/packages/
+      # 1️⃣1️⃣ Copy wheel to the user's home directory (Works for Linux & Windows)
+      - name: Copy wheel to server home
+        run: |
+          # The ':' at the end targets the user's default home folder
+          scp -i key.pem dist/*.whl \
+          ${{ secrets.AIRFLOW_USER }}@${{ secrets.AIRFLOW_HOST }}:
 
-  #     # 1️⃣2️⃣ Install wheel on Airflow
-  #     - name: Install wheel on Airflow
-  #       run: |
-  #         ssh -i key.pem \
-  #         ${{ secrets.AIRFLOW_USER }}@${{ secrets.AIRFLOW_HOST }} << EOF
-  #           source /opt/airflow/venv/bin/activate
-  #           pip install --upgrade /opt/airflow/packages/*.whl
-  #         EOF
+      # 1️⃣2️⃣ Verify the file exists (Cross-platform check)
+      - name: Verify file on server
+        run: |
+          ssh -i key.pem \
+          ${{ secrets.AIRFLOW_USER }}@${{ secrets.AIRFLOW_HOST }} << 'EOF'
+            echo "Searching for uploaded wheel..."
+            # 'ls' works on Linux/Ubuntu and Windows OpenSSH (Git Bash)
+            # If it's pure Windows CMD, 'dir' would be used, but 'ls' is usually available in SSH
+            ls -lh *.whl || dir *.whl
+          EOF
+
+
